@@ -9,6 +9,7 @@ package geometry
 		private var _edges:Vector.<Vector2d> ;
 		private var _normals:Vector.<Vector2d> ;
 		private var _centroid:Vector2d ;
+		internal var tree:BspNode;
 		
 		
 		public function Polygon2d()

@@ -4,6 +4,8 @@
     <classEntry path="geometry.Polygon2d"/>
     <classEntry path="geometry.Line2d"/>
     <classEntry path="geometry.LineSegment2d"/>
+    <classEntry path="geometry.BspNode"/>
+    <classEntry path="geometry.BspTree"/>
   </includeClasses>
   <includeResources/>
   <namespaceManifests/>
