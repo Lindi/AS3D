@@ -9,7 +9,7 @@ package geometry
 		private var _edges:Vector.<Vector2d> ;
 		private var _normals:Vector.<Vector2d> ;
 		private var _centroid:Vector2d ;
-		internal var tree:BspNode;
+		private var _tree:BspNode;
 		
 		
 		public function Polygon2d()
@@ -78,6 +78,16 @@ package geometry
 			_centroid = centroid ; 	
 		}
 		
+		
+		/**
+		 * Returns a reference to the binary space partitioning tree of the polygon
+		 * @return 
+		 * 
+		 */		
+		public function get tree():BspNode
+		{
+			return _tree ; 	
+		}
 		/**
 		 * Returns the vertex at the specified index
 		 * @param index
@@ -251,6 +261,17 @@ package geometry
 		}
 		
 		/**
+		 * Creates a binary space partitioning tree for storing
+		 * and fetching (in log(n) time) the extremal vertices of
+		 * the polygon in a given direction
+		 * 
+		 */		
+		public function createTree():void
+		{
+			_tree = BspTree.CreateTree( this );	
+		}
+		
+		/**
 		 * Returns true if the dot product of point a with point min
 		 * is less than the dot product of point b with min 
 		 * @param a
@@ -269,52 +290,39 @@ package geometry
 		}
 
 		/**
-		 * Returns the extreme index of the polygon 
+		 * Gets the 'extreme' vertex which is the vertex most aligned with
+		 * a given direction.  When we built the tree, we did so by computing the dot
+		 * product of the polygon's edge normals with the first edge in the collection
+		 * of edges at each node in the tree
+		 * 
+		 * It makes sense, then, that here we compute the dot product of the edge
+		 * at a given node index with the direction.  The direction is analagous to the normals
+		 * that we used to build the tree.  If we know, for example, that the dot product of
+		 * the direction and the edge specified by the node index is positive, we then know
+		 * that we should visit the right side of the tree, because that's where we put 
+		 * all indices of the normals with positive dot products with the first edge in our node collection 
+		 *  
 		 * @param polygon
 		 * @return 
 		 * 
 		 */		
 		public static function getExtremeIndex( polygon:Polygon2d, direction:Vector2d ):int
 		{
-			var i:int, j:int = 0 ;
-			while ( true ) 
+			var node:BspNode = polygon.tree ;
+			while ( node.right != null )
 			{
-				var mid:int = getMiddleIndex( i, j, polygon.vertices.length );
-				if ( polygon.getEdge( mid ).dot( direction ) > 0 )
+				var index:int = node.index ;
+				if ( polygon.edges[ index ].dot( direction ) >= 0 )
 				{
-					if ( i != mid )
-					{
-						i = mid ;
-					} else
-					{
-						return j ;
-					}
-				} else {
-					if ( polygon.getEdge( mid-1 ).dot( direction ) < 0 )
-					{
-						j = mid ;
-					} else {
-						
-						return mid ;
-					}
+					node = node.right ;
+					
+				} else
+				{
+					node = node.left ;
 				}
 			}
-			return 0 ;
+			
+			return node.index ;
 		}
-		
-		/**
-		 * Returns the index 'between' i and j 
-		 * @param i
-		 * @param j
-		 * 
-		 */		
-		public static function getMiddleIndex( i:int, j:int, n:int ):int
-		{
-			if ( i < j )
-				return int( i + j ) / 2 ;
-			return int(( i + j + n ) / 2 ) % n ;
-		}
-		
-		
 	}
 }

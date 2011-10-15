@@ -1,9 +1,9 @@
 package geometry
 {
-	internal class BspNode
+	public class BspNode
 	{
-		internal var index:int ;
-		internal var right:BspNode ;
-		internal var left:BspNode ;
+		public var index:int ;
+		public var right:BspNode ;
+		public var left:BspNode ;
 	}
 }
