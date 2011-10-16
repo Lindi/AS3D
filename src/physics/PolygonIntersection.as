@@ -36,9 +36,6 @@ package physics
 			//	of intervals
 			var intersection:Vector.<ProjectionInfo> = new Vector.<ProjectionInfo>(2,true);
 			
-			//	Intialize them
-			info[0] = new ProjectionInfo();
-			info[1] = new ProjectionInfo();
 			
 			//	This array could probably be a static property
 			//	The info array can't be because we have to know the information
@@ -46,6 +43,7 @@ package physics
 			//	the time interval that is the earliest possible intersection
 			intersection[0] = new ProjectionInfo();
 			intersection[1] = new ProjectionInfo();
+			
 			if ( TestIntersection( a, b, u, v, info, intersection, tmax, tfirst, tlast, side ))
 			{
 				var vertices:Vector.<Vector2d> = new Vector.<Vector2d>(2,true);
@@ -56,7 +54,7 @@ package physics
 				var quantity:int ;
 				
 				//	Get the points of intersection
-				GetIntersection( a, b, u, v, info, side, tfirst, quantity, vertices );
+				GetIntersection( a, b, u, v, intersection, side, tfirst, quantity, vertices );
 			}
 		}
 
@@ -92,6 +90,9 @@ package physics
 			//	of the second polygon to the first along each axis
 			for ( var i:int = a.normals.length - 1, j:int = 0; j < a.normals.length; i = j++ )
 			{
+				//	Initialize them
+				info[0] = new ProjectionInfo();
+				info[1] = new ProjectionInfo();
 				var normal:Vector2d = a.getNormal( i ) ;
 				var speed:Number = normal.dot( relativeVelocity ) ;
 				ComputeInterval( a, normal, info[0] );
@@ -107,6 +108,9 @@ package physics
 			//	of the first polygon to the second along each axis
 			for ( i = b.normals.length - 1, j = 0; j < b.normals.length; i = j++ )
 			{
+				//	Initialize them
+				info[0] = new ProjectionInfo();
+				info[1] = new ProjectionInfo();
 				normal = b.getNormal( i ) ;
 				speed = normal.dot( relativeVelocity ) ;
 				ComputeInterval( a, normal, info[0] );
