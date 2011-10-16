@@ -60,6 +60,30 @@ package geometry
 		}
 		
 		/**
+		 * Returns a copy of the current vector scaled by a given scale factor 
+		 * @param scale
+		 * @return 
+		 * 
+		 */		
+		public function ScaleBy( scale:Number ):Vector2d
+		{
+			var vector:Vector2d = this.clone();
+			vector.scale( scale ) ;
+			return vector ;
+		}
+		
+		/**
+		 * Scales the current vector in place 
+		 * @param scale
+		 * 
+		 */		
+		public function scale( scale:Number ):void
+		{
+			_data[0] *= scale ; _data[1] *= scale ;
+		}
+		
+		
+		/**
 		 * Returns the vector dot product of this vector
 		 * with the parameter vector 
 		 * @param vector

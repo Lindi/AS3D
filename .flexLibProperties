@@ -6,6 +6,7 @@
     <classEntry path="geometry.LineSegment2d"/>
     <classEntry path="geometry.BspNode"/>
     <classEntry path="geometry.BspTree"/>
+    <classEntry path="physics.PolygonIntersection"/>
   </includeClasses>
   <includeResources/>
   <namespaceManifests/>
