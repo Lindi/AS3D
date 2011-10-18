@@ -5,20 +5,175 @@ package physics
 		
 	public class PolygonIntersection
 	{
-		
+	
 		/**
-		 * Finds the points of contact where two polygons intersect 
+		 * Returns true if two polygons will intersect within the time interval [0,tmax]
+		 * Returns false if not 
+		 * @param a 
+		 * @param b
+		 * @param u
+		 * @param v
+		 * @return 
 		 * 
 		 */		
-		public static function FindIntersection( a:Polygon2d, b:Polygon2d, u:Vector2d, v:Vector2d, tmax:Number, tfirst:Number, tlast:Number ):void
+		public static function PolygonsIntersect( a:Polygon2d, b:Polygon2d, u:Vector2d, v:Vector2d, tmax:Number ):Boolean
 		{
-			//	This value is -1 if polygon b is to the 'left' of polygon a
-			//	(if the projection of polygon b is the lesser interval) and 1
-			//	if polygon b is to the 'right' of polygon a (if the projection
-			//	of polygon b is the greater interval)
-			var side:int ;
+			var interval:Object = { tmax: tmax, tfirst: 0, tlast: Number.MAX_VALUE };
 			
+			if ( TestIntersection( a, b, u, v, interval ))
+			{
+				return true ;
+			}
+			return false ;	
+		}
+		
+		/**
+		 * Resolves the polygon intersection by moving the polygons to their contact points
+		 * and adjusting their velocities 
+		 * @param a
+		 * @param b
+		 * @param u
+		 * @param v
+		 * 
+		 */		
+		public static function ResolveIntersection( a:Polygon2d, b:Polygon2d, u:Vector2d, v:Vector2d, tmax:Number ):void
+		{
+			//	A pair of ProjectionInfo instances which contains the information about the
+			//	the closest pair of projection intervals.  If the time between the closest pair
+			//	of projection intervals is less than the time over which we are looking for an intersection
+			//	then we can expect the polygons to intersect during the current time interval
+			//	This pair of ProjectionInfo instances contains the information about this "closest" pair
+			//	of intervals
+			var intersection:Vector.<ProjectionInfo> = new Vector.<ProjectionInfo>(2,true);
 			
+			//	This array could probably be a static property
+			//	The info array can't be because we have to know the information
+			//	for each axis projection, and store that which represents
+			//	the time interval that is the earliest possible intersection
+			intersection[0] = new ProjectionInfo();
+			intersection[1] = new ProjectionInfo();
+
+			var interval:Object = { tmax: tmax, tfirst: 0, tlast: Number.MAX_VALUE };
+			//trace( interval.tmax );
+
+			//	Do the polygons intersect?
+			if ( TestIntersection( a, b, u, v, interval, intersection ))
+			{
+				//	Intersection point pointer
+				var intersectionPoint:Vector2d ;
+				var normal:Vector2d ;
+				
+				//	Polygon a's max projection interval value is less than
+				//	polygon b's min projection interval value
+				if ( interval.side == 1 )
+				{
+					//if ( intersection[1].min >= intersection[0].max )
+					{
+						intersectionPoint = b.getVertex( intersection[1].index[0] ).Add( v.ScaleBy( interval.tfirst ));
+						
+						if ( Math.abs( intersectionPoint.dot( a.getEdge( intersection[0].index[1] ))) < 
+							Math.abs( intersectionPoint.dot( a.getEdge( intersection[0].index[1]-1))))
+						{
+							normal = a.getNormal( intersection[0].index[1] ).clone();	
+							
+						} else
+						{
+							normal = a.getNormal( intersection[0].index[1]-1 ).clone();
+						}
+
+						if ( normal != null )
+						{
+							var relativeVelocity:Vector2d = v.Subtract( u );
+							//	Don't do anything if the polygons are going away from each other
+							//	(Although they really shouldn't be at this point )
+							if ( normal.dot( relativeVelocity ) >= 0 )
+								return ;
+							var perp:Vector2d = normal.perp();
+							if ( perp.dot( relativeVelocity ) < 0 )
+								perp.negate();
+							
+							//	Scale the normal by the dot project of the normal with the relative velocity
+							normal.scale(normal.dot( relativeVelocity ));
+							
+							//	Reflect v about the normal
+							var reflectedVelocity:Vector2d = perp.Subtract( normal );
+							v.x = reflectedVelocity.x ;
+							v.y = reflectedVelocity.y ;
+							
+							//	Update the position of the polygon
+							b.centroid.x += v.x ;
+							b.centroid.y += v.y ;
+						}
+
+					}
+					
+				} else if ( interval.side == -1 )
+				{
+					//if ( intersection[0].min >= intersection[1].max )
+					{
+						intersectionPoint = a.getVertex( intersection[0].index[0] ).Add( v.ScaleBy( interval.tfirst ));
+						
+						if ( Math.abs( intersectionPoint.dot( b.getEdge( intersection[1].index[0] ))) < 
+							Math.abs( intersectionPoint.dot( b.getEdge( intersection[1].index[0]-1))))
+						{
+							normal = b.getNormal( intersection[1].index[0] ).clone();	
+							
+						} else
+						{
+							normal = b.getNormal( intersection[1].index[0]-1 ).clone();
+						}
+						if ( normal != null )
+						{
+							relativeVelocity = u.Subtract( v );
+							//	Don't do anything if the polygons are going away from each other
+							//	(Although they really shouldn't be at this point )
+							if ( normal.dot( relativeVelocity ) >= 0 )
+								return ;
+							perp = normal.perp();
+							if ( perp.dot( relativeVelocity ) < 0 )
+								perp.negate();
+							
+							//	Scale the normal by the dot project of the normal with the relative velocity
+							normal.scale(normal.dot( relativeVelocity ));
+							
+							//	Reflect v about the normal
+							reflectedVelocity = perp.Subtract( normal );
+							u.x = reflectedVelocity.x ;
+							u.y = reflectedVelocity.y ;
+							
+							//	Update the position of the polygon
+							a.centroid.x += u.x ;
+							a.centroid.y += u.y ;
+						}
+						
+					}
+				}
+			}
+//			for ( var prop:String in interval )
+//			{
+//				trace( "interval["+prop+"]" + interval[prop] );
+//			}
+		}
+		/**
+		 * Tests a pair of polygons to see if they will intersect before a given time t
+		 * Returns true if the pair of polygons will intersect, and false if not
+		 *  
+		 * @param a - The pair's first polygon
+		 * @param b - The pair's second polygon
+		 * @param u - The first polygon's velocity
+		 * @param v - The second polygon's velocity
+		 * @param tmax - The minimum time interval for inters ection.
+		 * @param tfirst - The earliest time at which the polygons intersect
+		 * @param tlast - The latest time at which the polygons will intersect
+		 * @param side - This value is -1 if polygon b is to the 'left' of polygon a 
+		 * (if the projection of polygon b is the lesser interval) and 1 if polygon b 
+		 * is to the 'right' of polygon a (if the projection of polygon b is the greater interval)
+		 * @return Boolean
+		 * 
+		 */		
+		private static function TestIntersection
+			( a:Polygon2d, b:Polygon2d, u:Vector2d, v:Vector2d, interval:Object, intersection:Vector.<ProjectionInfo> = null ):Boolean 
+		{
 			//	A pair of ProjectionInfo instances which contains the information about
 			//	the projection of a pair of polygons onto a given potential separating axis
 			//	Basically, when we iterate over each polygon's edge normals, we consider
@@ -28,63 +183,10 @@ package physics
 			//	contains projection information for the second polygon in the pair
 			var info:Vector.<ProjectionInfo> = new Vector.<ProjectionInfo>(2,true);
 			
-			//	A pair of ProjectionInfo instances which contains the information about the
-			//	the closest pair of projection intervals.  If the time between the closest pair
-			//	of projection intervals is less than the time over which we are looking for an intersection
-			//	then we can expect the polygons to intersect during the current time interval
-			//	This pair of ProjectionInfo instances contains the information about this "closest" pair
-			//	of intervals
-			var intersection:Vector.<ProjectionInfo> = new Vector.<ProjectionInfo>(2,true);
 			
-			
-			//	This array could probably be a static property
-			//	The info array can't be because we have to know the information
-			//	for each axis projection, and store that which represents
-			//	the time interval that is the earliest possible intersection
-			intersection[0] = new ProjectionInfo();
-			intersection[1] = new ProjectionInfo();
-			
-			if ( TestIntersection( a, b, u, v, info, intersection, tmax, tfirst, tlast, side ))
-			{
-				var vertices:Vector.<Vector2d> = new Vector.<Vector2d>(2,true);
-				
-				//	This quantity represents the number of points of intersection
-				//	In the case of a vertex-edge intersection, the quantity is 1
-				//	In the case of an edge-edge intersection, the quantity is 2
-				var quantity:int ;
-				
-				//	Get the points of intersection
-				GetIntersection( a, b, u, v, intersection, side, tfirst, quantity, vertices );
-			}
-		}
-
-		/**
-		 * Tests a pair of polygons to see if they will intersect before a given time t
-		 * Returns true if the pair of polygons will intersect, and false if not
-		 *  
-		 * @param a - The pair's first polygon
-		 * @param b - The pair's second polygon
-		 * @param u - The first polygon's velocity
-		 * @param v - The second polygon's velocity
-		 * @param tmax - The minimum time interval for intersection.
-		 * @param tfirst - The earliest time at which the polygons intersect
-		 * @param tlast - The latest time at which the polygons will intersect
-		 * @param side - This value is -1 if polygon b is to the 'left' of polygon a 
-		 * (if the projection of polygon b is the lesser interval) and 1 if polygon b 
-		 * is to the 'right' of polygon a (if the projection of polygon b is the greater interval)
-		 * @return Boolean
-		 * 
-		 */		
-		public static function TestIntersection
-			( a:Polygon2d, b:Polygon2d, u:Vector2d, v:Vector2d, info:Vector.<ProjectionInfo>, 
-			  intersection:Vector.<ProjectionInfo>, tmax:Number, tfirst:Number, tlast:Number, side:int ):Boolean 
-		{
 			//	Compute the relative velocity between the polygons
 			var relativeVelocity:Vector2d = v.Subtract( u ) ;
 			
-			
-			tfirst = 0 ;
-			tlast = Number.MAX_VALUE ;
 			
 			//	Iterate over the edge normals of the first polygon, and compare the projection
 			//	of the second polygon to the first along each axis
@@ -98,7 +200,7 @@ package physics
 				ComputeInterval( a, normal, info[0] );
 				ComputeInterval( b, normal, info[1] );
 				
-				if ( NoIntersection( tmax, speed, info, intersection, side, tfirst, tlast ))
+				if ( NoIntersection( speed, info, interval, intersection ))
 				{
 					return false ;
 				}
@@ -116,23 +218,22 @@ package physics
 				ComputeInterval( a, normal, info[0] );
 				ComputeInterval( b, normal, info[1] );
 				
-				if ( NoIntersection( tmax, speed, info, intersection, side, tfirst, tlast ))
+				if ( NoIntersection( speed, info, interval, intersection ))
 				{
 					return false ;
 				}
 			}
 			return true ;
 		}
-		
+
 		/**
 		 * Returns true if there will NOT be an intersection between the two polygons
 		 * and false if there will be or if they are already intersecting
 		 * @return 
 		 * 
 		 */		
-		public static function NoIntersection
-			( tmax:Number, speed:Number, info:Vector.<ProjectionInfo>, 
-			  intersection:Vector.<ProjectionInfo>, side:int, tfirst:Number, tlast:Number ):Boolean
+		private static function NoIntersection
+			( speed:Number, info:Vector.<ProjectionInfo>, interval:Object, intersection:Vector.<ProjectionInfo> = null ):Boolean
 		{
 			if ( info[1].max < info[0].min )
 			{
@@ -176,34 +277,37 @@ package physics
 				//	edge normal, we might run into a situation where the relative speed of one
 				//	pair of projection intervals is slower than another, in which case, the
 				//	polygons cannot intersect earlier than this interval
-				if ( t > tfirst )
+				if ( t > interval.tfirst )
 				{
-					tfirst = t ;
-					side = -1 ;
-					intersection[0] = info[0] ;
-					intersection[1] = info[1] ;
+					interval.tfirst = t ;
+					interval.side = -1 ;
+					if ( intersection != null )
+					{
+						intersection[0] = info[0] ;
+						intersection[1] = info[1] ;
+					}
 				}
 				
 				//	If the earliest time the polygons will intersect
 				//	is later than the time interval in which we're looking for an intersection
 				//	they don't intersect, so return true
-				if ( tfirst > tmax )
+				if ( interval.tfirst > interval.tmax )
 				{
 					return true ;
 				}
 				
 				//	Calculate the latest time at which they can intersect on this axis
 				t = ( info[0].max - info[1].min ) / speed ;
-				if ( t < tlast )
+				if ( t < interval.tlast )
 				{
-					tlast = t ;
+					interval.tlast = t ;
 				}
 				
 				//	If the earliest time at which they could possibly intersect
 				//	(as measured on another interval) is greater than the latest
 				//	time at which they could possibly intersect (as measured on this interval)
 				//	they don't intersect, so return true
-				if ( tfirst > tlast )
+				if ( interval.tfirst > interval.tlast )
 				{
 					return true ;
 				}
@@ -230,33 +334,36 @@ package physics
 				//	We can thus divide by a negative speed, and the time interval will be positive
 				t = ( info[0].max - info[1].min ) / speed ;
 				
-				if ( t > tfirst )
+				if ( t > interval.tfirst )
 				{
-					tfirst = t ;
-					side = 1 ;
-					intersection[0] = info[0] ;
-					intersection[1] = info[1] ;
+					interval.tfirst = t ;
+					interval.side = 1 ;
+					if ( intersection != null )
+					{
+						intersection[0] = info[0] ;
+						intersection[1] = info[1] ;
+					}
 				}
 				
 				//	The earliest they can meet is greater than the interval during
 				//	which we were looking for an intersection, so they can't intersect
 				//	Return true
-				if ( tfirst > tmax )
+				if ( interval.tfirst > interval.tmax )
 				{
 					return true ;
 				}
 				
 				//	Find the latest time at which they can possibly intersect
 				t = ( info[0].min - info[1].max ) / speed ;
-				if ( t < tlast )
+				if ( t < interval.tlast )
 				{
-					tlast = t ;
+					interval.tlast = t ;
 				}
 				//	If the earliest time at which they could possibly intersect
 				//	(as measured on another interval) is greater than the latest
 				//	time at which they could possibly intersect (as measured on this interval)
 				//	they don't intersect, so return true
-				if ( tfirst > tlast )
+				if ( interval.tfirst > interval.tlast )
 				{
 					return true ;
 				}
@@ -265,6 +372,7 @@ package physics
 				//	The projected intervals overlap
 				if ( speed > 0 )
 				{
+					interval.side = 1 ;
 					//	If the speed is positive, the polygons can only be heading towards each other if
 					//	polygon a is on the right or the positive side of polygon b.  Therefore
 					//	we calculate the latest time at which they can meet by subtracting the maximum of
@@ -273,27 +381,28 @@ package physics
 					
 					//	We only update tlast here since the intervals already overlap
 					//	such that tfirst is negative
-					if ( t < tlast )
+					if ( t < interval.tlast )
 					{
-						tlast = t ;
+						interval.tlast = t ;
 					}
-					if ( tfirst > tlast )
+					if ( interval.tfirst > interval.tlast )
 					{
 						return true ;
 					}
 				} else if ( speed < 0 )
 				{
+					interval.side = -1 ;
 					//	If the speed is negative, the polygons can only be heading towards each other if
 					//	polygon a is on the left or the negative side of polygon b.  Therefore
 					//	we calculate the latest time at which they can meet by subtracting the minimum of
 					//	polygon a's interval from maximum of polygon b's interval (a negative difference)
 					//	which we then divide by a negative speed to get a positive interval
 					t = ( info[0].min - info[1].max ) / speed ;
-					if ( t < tlast )
+					if ( t < interval.tlast )
 					{
-						tlast = t ;
+						interval.tlast = t ;
 					}
-					if ( tfirst > tlast )
+					if ( interval.tfirst > interval.tlast )
 					{
 						return true ;
 					}
@@ -304,38 +413,38 @@ package physics
 		}
 		
 
-		public static function GetIntersection
+		
+		
+
+		private static function GetIntersection
 			( a:Polygon2d, b:Polygon2d, u:Vector2d, v:Vector2d,
-			  info:Vector.<ProjectionInfo>, side:int, t0:Number,
-			  quantity:int, vertices:Vector.<Vector2d> ):void
+			  info:Vector.<ProjectionInfo>, interval:Object, vertices:Vector.<Vector2d> ):void
 		{
 			//	Pointer to a Vector2d instance
 			var point:Vector2d ;
 			
 			//	Polygon a's max projection interval value is less than
 			//	polygon b's min projection interval value
-			if ( side == 1 )
+			if ( interval.side == 1 )
 			{
 				if ( info[0].unique[1] )
 				{
 					//	Polygon a's maximum extremal vertex intersects an 
 					//	one of polygon b's edges
-					quantity = 1 ;
-					vertices[0] = a.getVertex( info[0].index[1]).Add( u.ScaleBy( t0));
+					vertices.push(a.getVertex( info[0].index[1]).Add( u.ScaleBy( interval.tfirst )));
 						
 				} else if ( info[1].unique[0] )
 				{
 					//	Polygon b's minimal extremal vertex intersects an 
 					//	one of polygon a's edges
-					quantity = 1 ;
-					vertices[0] = b.getVertex( info[1].index[0]).Add( v.ScaleBy( t0));
+					vertices.push(b.getVertex( info[1].index[0]).Add( v.ScaleBy( interval.tfirst )));
 
 				} else
 				{
 					//	Edge-edge intersection
 					//	Get the maximum vertex of polygon a and translate it in time
 					//	by its velocity.  This is the point of intersection.
-					point = a.getVertex( info[0].index[1] ).Add( u.ScaleBy( t0 ));
+					point = a.getVertex( info[0].index[1] ).Add( u.ScaleBy( interval.tfirst ));
 					
 					//	Grab the edge at the same index as the extremal vertex
 					var edge:Vector2d = a.getEdge( info[0].index[1] );
@@ -353,15 +462,15 @@ package physics
 					var s1:Number = edge.dot( p.Subtract( point )) / e ;
 					
 					//	Find interval intersection
-					var interval:Array = SortEdgeIntersectionInterval( [0,1,s0,s1] );
-					for ( var i:int = 1; i < interval.length-1; i++ )
+					var parameters:Array = SortEdgeIntersectionParameters( [0,1,s0,s1] );
+					for ( var i:int = 1; i < parameters.length-1; i++ )
 					{
-						vertices[i-1] = point.Add( edge.ScaleBy( interval[i] ));
+						vertices.push(point.Add( edge.ScaleBy( parameters[i] )));
 					}
 						
 				}
 				
-			} else if ( side == -1 )
+			} else if ( interval.side == -1 )
 			{
 				//	Polygon b's max projection interval value is less than
 				//	polygon a's min projection interval value
@@ -370,22 +479,20 @@ package physics
 				{
 					//	Polygon a's maximum extremal vertex intersects an 
 					//	one of polygon b's edges
-					quantity = 1 ;
-					vertices[0] = b.getVertex( info[1].index[1]).Add( v.ScaleBy( t0));
+					vertices.push(b.getVertex( info[1].index[1]).Add( v.ScaleBy( interval.tfirst )));
 					
 				} else if ( info[0].unique[0] )
 				{
 					//	Polygon b's minimal extremal vertex intersects an 
 					//	one of polygon a's edges
-					quantity = 1 ;
-					vertices[0] = a.getVertex( info[0].index[0]).Add( u.ScaleBy( t0));
+					vertices.push(a.getVertex( info[0].index[0]).Add( u.ScaleBy( interval.tfirst )));
 					
 				} else
 				{
 					//	Edge-edge intersection
 					//	Get the maximum vertex of polygon a and translate it in time
 					//	by its velocity.  This is the point of intersection.
-					point = b.getVertex( info[1].index[1] ).Add( u.ScaleBy( t0 ));
+					point = b.getVertex( info[1].index[1] ).Add( u.ScaleBy( interval.tfirst ));
 					
 					//	Grab the edge at the same index as the extremal vertex
 					edge = a.getEdge( info[0].index[0] );
@@ -403,14 +510,12 @@ package physics
 					s1 = edge.dot( p.Subtract( point )) / e ;
 					
 					//	Find interval intersection
-					interval = SortEdgeIntersectionInterval( [0,1,s0,s1] );
-					for ( i = 1; i < interval.length-1; i++ )
+					parameters = SortEdgeIntersectionParameters( [0,1,s0,s1] );
+					for ( i = 1; i < parameters.length-1; i++ )
 					{
-						vertices[i-1] = point.Add( edge.ScaleBy( interval[i] ));
+						vertices.push(point.Add( edge.ScaleBy( parameters[i] )));
 					}
-					
 				}
-				
 			} else
 			{
 				//	Polygon a and b are already intersecting
@@ -423,7 +528,7 @@ package physics
 		 * @param interval
 		 * 
 		 */		
-		private static function SortEdgeIntersectionInterval( interval:Array ):Array
+		private static function SortEdgeIntersectionParameters( interval:Array ):Array
 		{
 			//	Sort the list of numbers
 			for ( var i:int = 1; i < interval.length; i++ )
@@ -443,11 +548,14 @@ package physics
 			return interval ;
 		}
 			  
-		public static function ComputeInterval( polygon:Polygon2d, direction:Vector2d, projectionInfo:ProjectionInfo ):void
+		private static function ComputeInterval( polygon:Polygon2d, direction:Vector2d, info:ProjectionInfo ):void
 		{
-			  
+			info.index[0] = Polygon2d.getExtremeIndex( polygon, direction.Negate() );
+			info.min = direction.dot( polygon.getVertex( info.index[0] ));
+			info.index[1] = Polygon2d.getExtremeIndex( polygon, direction );
+			info.max = direction.dot( polygon.getVertex( info.index[1] ));
 		}
-	}
+	}  
 }
 
 /**
