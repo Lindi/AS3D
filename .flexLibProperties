@@ -7,6 +7,7 @@
     <classEntry path="geometry.BspNode"/>
     <classEntry path="geometry.BspTree"/>
     <classEntry path="physics.PolygonIntersection"/>
+    <classEntry path="physics.lcp.LcpSolver"/>
   </includeClasses>
   <includeResources/>
   <namespaceManifests/>

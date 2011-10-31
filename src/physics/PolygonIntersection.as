@@ -59,6 +59,7 @@ package physics
 			//	Do the polygons intersect?
 			if ( TestIntersection( a, b, u, v, interval, intersection ))
 			{
+				trace( "intersecting" );
 				//	Intersection point pointer
 				var intersectionPoint:Vector2d ;
 				var normal:Vector2d ;
@@ -86,8 +87,8 @@ package physics
 							var relativeVelocity:Vector2d = v.Subtract( u );
 							//	Don't do anything if the polygons are going away from each other
 							//	(Although they really shouldn't be at this point )
-							if ( normal.dot( relativeVelocity ) >= 0 )
-								return ;
+							//if ( normal.dot( relativeVelocity ) >= 0 )
+								//return ;
 							var perp:Vector2d = normal.perp();
 							if ( perp.dot( relativeVelocity ) < 0 )
 								perp.negate();
@@ -127,8 +128,8 @@ package physics
 							relativeVelocity = u.Subtract( v );
 							//	Don't do anything if the polygons are going away from each other
 							//	(Although they really shouldn't be at this point )
-							if ( normal.dot( relativeVelocity ) >= 0 )
-								return ;
+							//if ( normal.dot( relativeVelocity ) >= 0 )
+								//return ;
 							perp = normal.perp();
 							if ( perp.dot( relativeVelocity ) < 0 )
 								perp.negate();
