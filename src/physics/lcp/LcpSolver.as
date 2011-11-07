@@ -7,14 +7,12 @@ package physics.lcp
 		public static var CANNOT_REMOVE_COMPLEMENTARY_VARIABLE:int = 2 ;
 		public static var EXCEEDED_MAX_RETRIES:int = 3 ;
 		
-		private var maxRetries:int ;
+		private var maxRetries:int = 50;
 		private var numberOfEquations:int ;
 		private var equations:Vector.<Equation> ;
 		private var M:Vector.<Vector.<Number>> ;
 		private var Q:Vector.<Number> ;
-		private var Z:Vector.<Number> ;
-		private var W:Vector.<Number> ;
-		private var result:Object ;
+		//private var result:Object ;
 		
 		private var departingVariableIndex:int ;
 		private var departingVariable:String ;
@@ -39,18 +37,16 @@ package physics.lcp
 		 */		
 		public function LcpSolver
 			( numberOfEquations:int, M:Vector.<Vector.<Number>>, 
-			  Q:Vector.<Number>, Z:Vector.<Number>, 
-			  W:Vector.<Number>, result:Object)
+			  Q:Vector.<Number>, result:Object)
 		{
 			this.numberOfEquations = numberOfEquations ;
 			this.equations = new Vector.<Equation>( numberOfEquations, true );
 			this.M = M ;
 			this.Q = Q ;
-			this.Z = Z ;
-			this.W = W ;
-			this.result = result ;
-			this.zeroTolerance = result.zeroTolerance ;
-			this.ratioError = result.ratioError ;
+			//this.zeroTolerance = result.zeroTolerance ;
+			//this.ratioError = result.ratioError ;
+			initialize( result ) ;
+			
 		}
 		
 		private function initialize( result:Object ):void
@@ -69,6 +65,41 @@ package physics.lcp
 					
 					var index:int = info.index - 1;
 					solve( equations[index].Var, equations[index].VarIndex );
+					printEquations();
+					
+					//	Is z0 basic?
+					var basic:Boolean = false ;
+					for ( var j:int = 0; j < numberOfEquations; j++)
+					{
+						if ( equations[j].Var == 'z' && equations[j].VarIndex == 0 )
+						{
+							basic = true ;
+							break ;
+						}
+					}
+					
+					
+					if ( !basic )
+					{
+						//	Copy the solution into two arrays
+						var Z:Array = new Array( numberOfEquations );
+						var W:Array = new Array( numberOfEquations );
+						for ( j = 0; j < numberOfEquations; j++)
+						{
+							if ( equations[j].Var == 'z' )
+							{
+								Z[equations[j].VarIndex-1] = equations[j].C[0] ;
+							} else 
+							{
+								W[equations[j].VarIndex-1] = equations[j].C[0] ;
+							}
+						}
+						
+						result.status = FOUND_SOLUTION ;
+						result.Z = Z ;
+						result.W = W ;
+						break ;
+					}
 					
 					
 				}
@@ -106,8 +137,9 @@ package physics.lcp
 		{
 			equations = new Vector.<Equation>(numberOfEquations,true);
 			var n:int = numberOfEquations + 1;
-			for (var i:int = 0; i < n; ++i)
+			for (var i:int = 0; i < numberOfEquations; ++i)
 			{
+				equations[i] = new Equation();
 				equations[i].C = new Vector.<Number>(n);
 				equations[i].W = new Vector.<Number>(n);
 				equations[i].Z = new Vector.<Number>(n);
@@ -133,6 +165,7 @@ package physics.lcp
 				equations[i].VarIndex = i + 1;
 				
 				//	The extra variable in the equations is z0.
+				//	Each z0 variable has a coefficient of 1
 				equations[i].Z[0] = 1.0;
 				
 				//	Set all but the first constant coefficient to 1
@@ -162,12 +195,14 @@ package physics.lcp
 			var j:int ;
 			for (i = 0; i < numberOfEquations; ++i)
 			{
-				// Set equations Z[0] to 0.0 for any row in which all mM are 0.0.
+				//	Set equations Z[0] to 0.0 for any row in which all mM are 0.0.
+				//	Obviously, if you have an equation with only a constant term,
+				//	the z0 coefficient is going to be 0 because ...
 				var rowOfZeros:Number = 0.0;
 				
 				//	We loop over the number of equations because
 				//	the number of columns in the M matrix must match the number
-				//	of rows in the Z matrix
+				//	of rows in the Z matrix (which is the number of equations)
 				for (j = 0; j < numberOfEquations; ++j)
 				{
 					var temp:Number = M[i][j];
@@ -261,7 +296,8 @@ package physics.lcp
 				{
 					departingVariableIndex =
 						nonBasicVariableIndex = 0 ;
-					departingVariable = 'z' ;
+					departingVariable =
+						nonBasicVariable = 'z' ;
 					
 				} else 
 				{
@@ -366,7 +402,7 @@ package physics.lcp
 			var found:Array= new Array( equations.length + 1 );
 			for ( i=0; i < equations.length + 1; i++ )
 			{
-				found.push( new Array(2));
+				found[i] = new Array(2);
 			}
 			
 			// 	Find equations with negative coefficients for selected index.
@@ -381,14 +417,7 @@ package physics.lcp
 			var temp:Number ;
 			for (i = 0, j = 0; i < equations.length; ++i)
 			{                                    
-				if ( nonBasicVariable == 'z')
-				{
-					temp = equations[i].Z[departingVariableIndex];
-				}
-				else
-				{
-					temp = equations[i].W[departingVariableIndex];
-				}
+				temp = equations[i].C[0] ;
 				
 				if (temp < 0)
 				{
@@ -421,7 +450,7 @@ package physics.lcp
 				
 				
 				//	Iterate over the equations
-				for ( i = 0; i <= numberOfEquations; i++)
+				for ( i = 0; i <= equations.length; i++)
 				{
 					//	Initialize the column counters
 					column2 = ( column1 == 0 ? 1 : 0 );
@@ -433,7 +462,7 @@ package physics.lcp
 					//	we're holding 'fixed' (row1) and store it
 					//	in the spare column of row2
 					var index1:int = found[row1++][column1] ;
-					found[row2++][column2] = index1 ;
+					found[row2++][column2] = index1 ; 
 					
 					//	Store row1 in a variable k
 					var k:int = row1 ;
@@ -450,9 +479,8 @@ package physics.lcp
 							break ;
 						}
 						
-						//	Otherwise, compare the two equations
 						var denom1:Number, denom2:Number ;
-						if (nonBasicVariable == 'z')
+						if ( nonBasicVariable == 'z')
 						{
 							denom1 = equations[index1].Z[departingVariableIndex];
 							denom2 = equations[index2].Z[departingVariableIndex];
@@ -463,6 +491,7 @@ package physics.lcp
 							denom2 = equations[index2].W[departingVariableIndex]; 
 						}
 						
+						
 						//	Make sure that the ratio of the equation at the kth found index
 						//	(the kth found index is what's changing) is less than the ratio
 						//	for the row we're holding fixed
@@ -470,12 +499,12 @@ package physics.lcp
 							equations[index1].C[i]/denom1;
 						
 						
-						if (temp < -zeroTolerance)       
+						if (temp < 0.0)       
 						{
 							// The first equation has the smallest ratio.  Do nothing;
 							// the first equation is the choice.
 						}
-						else if (temp > zeroTolerance) 
+						else if (temp > 0.0) 
 						{
 							
 							//	This means we've found an equation that's less
@@ -514,7 +543,6 @@ package physics.lcp
 						//	without incrementing row2 (it's still 1, which was its
 						//	value before the start of the while loop), that means our minimum
 						//	equation index is in the spare column of row 0
-						result.index = found[0][column2]+1;
 						return true ;
 					}
 					
@@ -571,11 +599,11 @@ package physics.lcp
 			var denom:Number ;
 			if ( nonBasicVariable == 'z')
 			{
-				denom = -equations[found].Z[nonBasicVariable];
+				denom = -equations[found].Z[nonBasicVariableIndex];
 			}
 			else
 			{
-				denom = -equations[found].W[nonBasicVariable];
+				denom = -equations[found].W[nonBasicVariableIndex];
 			}
 			
 			//	... and divide all the other equations by this coefficient
@@ -692,6 +720,40 @@ package physics.lcp
 			
 			//	And we're done
 		}
+		
+		
+		private function printEquations():void
+		{			
+			trace( "\n\n" );
+			for (var i:int =0; i < numberOfEquations; ++i)
+			{
+				trace( equations[i].Var, "(", equations[i].VarIndex, ") = ", equations[i].C[0]);
+				
+				for ( var j:int = 0; j <= numberOfEquations; ++j)
+				{
+					if ( equations[i].W[j] != 0.0)
+					{
+						trace( equations[i].W[j], "*w(", j, ")");
+					}
+				}
+				for ( j = 0; j <= numberOfEquations; ++j)
+				{
+					if ( equations[i].Z[j] != 0.0)
+					{
+						trace( equations[i].Z[j], "z(", j, ")");
+					}
+				}
+				
+				for ( j = 0; j <= numberOfEquations; ++j)
+				{
+					if ( equations[i].C[j] != 0.0)
+					{
+						trace( equations[i].C[j], "c(", j, ")");
+					}
+				}
+			}
+		}
+
 	}
 }
 
