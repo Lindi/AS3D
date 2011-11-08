@@ -56,7 +56,7 @@ package physics.lcp
 			{
 				for ( var i:int = 0; i < maxRetries; i++ )
 				{
-					var info:Object = {  };
+					var info:Object = new Object();
 					if ( !selectEquation( info ))
 					{
 						result.status = CANNOT_REMOVE_COMPLEMENTARY_VARIABLE ;
@@ -221,40 +221,40 @@ package physics.lcp
 				equations[i].Z[0] *= rowOfZeros;
 			}
 			
-			for (i = 0; i < numberOfEquations; ++i)
-			{
-				// Find the max abs value of the coefficients on each row and divide
-				// each row by that max abs value.
-				var maxAbsValue:Number = 0.0;
-				for (j = 0; j < numberOfEquationsP1; ++j)
-				{
-					var absValue:Number = Math.abs(equations[i].C[j]);
-					if (absValue > maxAbsValue)
-					{
-						maxAbsValue = absValue;
-					}
-					
-					absValue = Math.abs(equations[i].W[j]);
-					if (absValue > maxAbsValue)
-					{
-						maxAbsValue = absValue;
-					}
-					
-					absValue = Math.abs(equations[i].Z[j]);
-					if (absValue > maxAbsValue)
-					{
-						maxAbsValue = absValue;
-					}
-				}
-				
-				var invMaxAbsValue:Number = 1.0/maxAbsValue;
-				for (j = 0; j < numberOfEquationsP1; ++j)
-				{
-					equations[i].C[j] *= invMaxAbsValue;
-					equations[i].W[j] *= invMaxAbsValue;
-					equations[i].Z[j] *= invMaxAbsValue;
-				}       
-			}
+//			for (i = 0; i < numberOfEquations; ++i)
+//			{
+//				// Find the max abs value of the coefficients on each row and divide
+//				// each row by that max abs value.
+//				var maxAbsValue:Number = 0.0;
+//				for (j = 0; j < numberOfEquationsP1; ++j)
+//				{
+//					var absValue:Number = Math.abs(equations[i].C[j]);
+//					if (absValue > maxAbsValue)
+//					{
+//						maxAbsValue = absValue;
+//					}
+//					
+//					absValue = Math.abs(equations[i].W[j]);
+//					if (absValue > maxAbsValue)
+//					{
+//						maxAbsValue = absValue;
+//					}
+//					
+//					absValue = Math.abs(equations[i].Z[j]);
+//					if (absValue > maxAbsValue)
+//					{
+//						maxAbsValue = absValue;
+//					}
+//				}
+//				
+//				var invMaxAbsValue:Number = 1.0/maxAbsValue;
+//				for (j = 0; j < numberOfEquationsP1; ++j)
+//				{
+//					equations[i].C[j] *= invMaxAbsValue;
+//					equations[i].W[j] *= invMaxAbsValue;
+//					equations[i].Z[j] *= invMaxAbsValue;
+//				}       
+//			}
 			return true;
 		}
 		/**
@@ -417,7 +417,14 @@ package physics.lcp
 			var temp:Number ;
 			for (i = 0, j = 0; i < equations.length; ++i)
 			{                                    
-				temp = equations[i].C[0] ;
+				if ( nonBasicVariable == 'z')
+				{
+					temp = equations[i].Z[departingVariableIndex];
+				}
+				else
+				{
+					temp = equations[i].W[departingVariableIndex];
+				}
 				
 				if (temp < 0)
 				{
@@ -543,6 +550,7 @@ package physics.lcp
 						//	without incrementing row2 (it's still 1, which was its
 						//	value before the start of the while loop), that means our minimum
 						//	equation index is in the spare column of row 0
+						result.index = found[0][column2] + 1;
 						return true ;
 					}
 					
@@ -727,30 +735,32 @@ package physics.lcp
 			trace( "\n\n" );
 			for (var i:int =0; i < numberOfEquations; ++i)
 			{
-				trace( equations[i].Var, "(", equations[i].VarIndex, ") = ", equations[i].C[0]);
+				var equation:String = equations[i].Var + "(" + equations[i].VarIndex + ") = " + equations[i].C[0]; 
 				
 				for ( var j:int = 0; j <= numberOfEquations; ++j)
 				{
 					if ( equations[i].W[j] != 0.0)
 					{
-						trace( equations[i].W[j], "*w(", j, ")");
+						equation += " " + equations[i].W[j] + "w(" + j + ") " ;
 					}
 				}
 				for ( j = 0; j <= numberOfEquations; ++j)
 				{
 					if ( equations[i].Z[j] != 0.0)
 					{
-						trace( equations[i].Z[j], "z(", j, ")");
+						equation += equations[i].Z[j] + "z(" + j + ") " ;
 					}
 				}
 				
-				for ( j = 0; j <= numberOfEquations; ++j)
-				{
-					if ( equations[i].C[j] != 0.0)
-					{
-						trace( equations[i].C[j], "c(", j, ")");
-					}
-				}
+//				for ( j = 0; j <= numberOfEquations; ++j)
+//				{
+//					if ( equations[i].C[j] != 0.0)
+//					{
+//						equation += " " + equations[i].C[0] + "c(" + j + ") " ;
+//					}
+//				}
+				
+				trace( equation ) ;
 			}
 		}
 
