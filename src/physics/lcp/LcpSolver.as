@@ -86,12 +86,15 @@ package physics.lcp
 						var W:Array = new Array( numberOfEquations );
 						for ( j = 0; j < numberOfEquations; j++)
 						{
+							var varIndex:int = equations[j].VarIndex-1 ;
+							Z[varIndex] = W[varIndex] = 0 ;
+							
 							if ( equations[j].Var == 'z' )
 							{
-								Z[equations[j].VarIndex-1] = equations[j].C[0] ;
+								Z[varIndex] = equations[j].C[0] ;
 							} else 
 							{
-								W[equations[j].VarIndex-1] = equations[j].C[0] ;
+								W[varIndex] = equations[j].C[0] ;
 							}
 						}
 						
