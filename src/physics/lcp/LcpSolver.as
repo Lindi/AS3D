@@ -18,8 +18,8 @@ package physics.lcp
 		private var departingVariable:String ;
 		private var nonBasicVariableIndex:int ;
 		private var nonBasicVariable:String ;
-		private var zeroTolerance:Number = 0.0 ;
-		private var ratioError:Number = 0.0 ;
+		private var zeroTolerance:Number = 0.001 ;
+		private var ratioError:Number = 0.001 ;
 		
 		/**
 		 * Implementation of Lemke's algorithm to solve the linear complementarity problem 
@@ -54,11 +54,13 @@ package physics.lcp
 			allocateEquations();
 			if (initializeEquations())
 			{
+				printEquations();
 				for ( var i:int = 0; i < maxRetries; i++ )
 				{
 					var info:Object = new Object();
 					if ( !selectEquation( info ))
 					{
+						printEquations();
 						result.status = CANNOT_REMOVE_COMPLEMENTARY_VARIABLE ;
 						break ;
 					}
@@ -98,6 +100,7 @@ package physics.lcp
 							}
 						}
 						
+						printEquations();
 						result.status = FOUND_SOLUTION ;
 						result.Z = Z ;
 						result.W = W ;
@@ -293,60 +296,59 @@ package physics.lcp
 				{
 					basic = true ;
 				}
-				
-				//	If z0 is not basic, then we find the equation with the smallest negative constant term
-				if ( !basic )
-				{
-					departingVariableIndex =
-						nonBasicVariableIndex = 0 ;
-					departingVariable =
-						nonBasicVariable = 'z' ;
-					
-				} else 
-				{
-					//	If a variable is in the dictionary, it's basic.  If a variable is out of the dictionary
-					//	it's non-basic.  (I *think* basic refers to the basis of a vector space?
-					//	Anyway, like the idea that that which is non-basic cannot be defined.)
-					//	So, z0 is initially *non-basic*.  If z0 is *now basic*, then we set the new
-					//	non-basic variable to that which just left the dictionary.
-					
-					//	I was confused about this initially, because I thought well, if z0 is
-					//	now non-basic, then why not just set the new nonBasic variable to 'w'?
-					//	But that question misunderstands what the algorithm's doing.  The algorithm
-					//	is alternately solving for variables in the w vector and variables in the z vector
-					//	because they're complementary (when one iz zero, the other must be non-zero and
-					//	vice-versa).  Therefore, at this point, since z0 has left the dictionary
-					//	the new non-basic variable must be wj or zj (must be an element in either
-					//	the w vector or the z vector), and that's why we must check what the departing
-					//	variable is, and set the new non-basic variable to the opposite of the
-					//	departing variable (I think this is to ensure that the algorithm doesn't
-					//	encounter the same set of equations twice?)
-					
-					//	So if 'w' is departing the dictionary, it is becoming non-basic.  Which means
-					//	that it's opposite is already non-basic (and about to become basic?)
-					nonBasicVariable = ( departingVariable == 'w' ? 'z' : 'w' );
-				}
-				
-				var found:Boolean = findEquation( result ) ;
-				if ( found )
-				{
-					var index:int = result.index - 1 ;
-					
-					//	The nonBasicVariableIndex is the index of the variable
-					//	that's entering the dictionary
-					nonBasicVariableIndex = departingVariableIndex ;
-					
-					//	The departingVariable, therefore, is the variable
-					//	of the equation that we've found.  
-					//	N.B.: The Var variable denotes the found equation's *basic variable*
-					//	The VarIndex variable denotes the found equation's *basic variable*
-					departingVariable = equations[index].Var ;
-					departingVariableIndex = equations[index].VarIndex ;
-					
-				}
-				return found ;
 			}
-			return false ;
+				
+			//	If z0 is not basic, then we find the equation with the smallest negative constant term
+			if ( !basic )
+			{
+				departingVariableIndex =
+					nonBasicVariableIndex = 0 ;
+				departingVariable =
+					nonBasicVariable = 'z' ;
+				
+			} else 
+			{
+				//	If a variable is in the dictionary, it's basic.  If a variable is out of the dictionary
+				//	it's non-basic.  (I *think* basic refers to the basis of a vector space?
+				//	Anyway, like the idea that that which is non-basic cannot be defined.)
+				//	So, z0 is initially *non-basic*.  If z0 is *now basic*, then we set the new
+				//	non-basic variable to that which just left the dictionary.
+				
+				//	I was confused about this initially, because I thought well, if z0 is
+				//	now non-basic, then why not just set the new nonBasic variable to 'w'?
+				//	But that question misunderstands what the algorithm's doing.  The algorithm
+				//	is alternately solving for variables in the w vector and variables in the z vector
+				//	because they're complementary (when one iz zero, the other must be non-zero and
+				//	vice-versa).  Therefore, at this point, since z0 has left the dictionary
+				//	the new non-basic variable must be wj or zj (must be an element in either
+				//	the w vector or the z vector), and that's why we must check what the departing
+				//	variable is, and set the new non-basic variable to the opposite of the
+				//	departing variable (I think this is to ensure that the algorithm doesn't
+				//	encounter the same set of equations twice?)
+				
+				//	So if 'w' is departing the dictionary, it is becoming non-basic.  Which means
+				//	that it's opposite is already non-basic (and about to become basic?)
+				nonBasicVariable = ( departingVariable == 'w' ? 'z' : 'w' );
+			}
+			
+			var found:Boolean = findEquation( result ) ;
+			if ( found )
+			{
+				var index:int = result.index - 1 ;
+				
+				//	The nonBasicVariableIndex is the index of the variable
+				//	that's entering the dictionary
+				nonBasicVariableIndex = departingVariableIndex ;
+				
+				//	The departingVariable, therefore, is the variable
+				//	of the equation that we've found.  
+				//	N.B.: The Var variable denotes the found equation's *basic variable*
+				//	The VarIndex variable denotes the found equation's *basic variable*
+				departingVariable = equations[index].Var ;
+				departingVariableIndex = equations[index].VarIndex ;
+				
+			}
+			return found ;
 		}
 		
 		private function findEquation( result:Object ):Boolean
@@ -639,7 +641,7 @@ package physics.lcp
 				replacement.W[nonBasicVariableIndex] = 0.0;
 			}
 			
-			//	Since the basic-variable is moving over to the 'left-hand side'
+			//	Since the basic-variable is moving over to the 'right-hand side'
 			//	of the new equation (i.e. becoming non-basic), we set its
 			//	new coefficient to -invDenom.  The minus is because it's being
 			//	shifted to the left hand side, and the invDemon is because its
@@ -738,7 +740,7 @@ package physics.lcp
 			trace( "\n\n" );
 			for (var i:int =0; i < numberOfEquations; ++i)
 			{
-				var equation:String = equations[i].Var + "(" + equations[i].VarIndex + ") = " + equations[i].C[0]; 
+				var equation:String = equations[i].Var + "(" + equations[i].VarIndex + ") = " + equations[i].C[0] + " " ; 
 				
 				for ( var j:int = 0; j <= numberOfEquations; ++j)
 				{
@@ -754,15 +756,7 @@ package physics.lcp
 						equation += equations[i].Z[j] + "z(" + j + ") " ;
 					}
 				}
-				
-//				for ( j = 0; j <= numberOfEquations; ++j)
-//				{
-//					if ( equations[i].C[j] != 0.0)
-//					{
-//						equation += " " + equations[i].C[0] + "c(" + j + ") " ;
-//					}
-//				}
-				
+								
 				trace( equation ) ;
 			}
 		}

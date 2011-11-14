@@ -2,6 +2,8 @@ package physics
 {
 	import geometry.Polygon2d;
 	import geometry.Vector2d;
+	
+	import physics.lcp.LcpSolver;
 
 	public class PolygonDistance
 	{
@@ -11,7 +13,7 @@ package physics
 		}
 		
 		
-		public static function distance( polygon0:Polygon2d, polygon1:Polygon2d ):Vector.<Vector.<Number>>
+		public static function distance( polygon0:Polygon2d, polygon1:Polygon2d ):Object
 		{
 			//	Grab the size of each of the polygons
 			var n0:int = polygon0.vertices.length ;
@@ -59,9 +61,9 @@ package physics
 			for ( i = 0; i < n0; i++ )
 			{
 				normal = polygon0.getNormal( i );				
-				A0[i] = normal.x ;
-				A0[i+1] = normal.y ;
-				vertex = polygon0.getVertex( i - 1 );
+				A0[i*2] = normal.x ;
+				A0[i*2+1] = normal.y ;
+				vertex = polygon0.getVertex( i-1 );
 				B0[i] = normal.dotProduct( vertex );
 			}
 			
@@ -72,9 +74,9 @@ package physics
 			for ( i = 0; i < n1; i++ )
 			{
 				normal = polygon1.getNormal( i );				
-				A1[i] = normal.x ;
-				A1[i+1] = normal.y ;
-				vertex = polygon1.getVertex( i - 1 );
+				A1[i*2] = normal.x ;
+				A1[i*2+1] = normal.y ;
+				vertex = polygon1.getVertex( i-1 );
 				B1[i] = normal.dotProduct( vertex );
 			}
 
@@ -86,6 +88,7 @@ package physics
 			var A:Vector.<Number> = new Vector.<Number>(n,true);
 			for ( i = 0; i < n; i++)
 			{
+				A[i] = 0 ;
 				r = ( i / 4 );
 				c = ( i % 4 );
 				if ( r < n0 )
@@ -108,6 +111,7 @@ package physics
 			//	First, write the matrix 2S in the upper left corner of M
 			//	S is the 2x2 block matrix [I -I -I I] multiplied by 2 where
 			//	I is the 2x2 identity matrix
+			var m:int ;
 			for ( i = 0; i < 16; i++ )
 			{
 				r = ( i / 4 );
@@ -116,11 +120,11 @@ package physics
 				
 				//	If the sum of the row and column indices is even
 				//	the value should be 1, otherwise zero (checkerboard)
-				row[c] = int(( r + c ) % 2);
+				row[c] = int(( r + c ) % 2 == 0);
 				
 				//	If the quadrant of the row and column
 				//	is not divisible by 3, multiply -1
-				var m:int = int( Math.floor( r / 2 ) + Math.floor( c / 2 ));
+				m = int( Math.floor( r / 2 ) + Math.floor( c / 2 ));
 				row[c] *= ( 1 - ( 2 * int(( m % 3 ) % 2  > 0)));
 				
 				//	Multiply by 2
@@ -134,14 +138,14 @@ package physics
 				r = ( i % ( n0 + n1 ));
 				c = ( i / ( n0 + n1 ));
 				var value:Number = A[ r * 4 + c ] ;
-				row = M[3-c] ;
+				row = M[c] ;
 				row[r+4] = value ;
 				row = M[ r + 4 ] ;
-				row[ c] = value ;
+				row[c] = -value ;
 			}
 			
 			//	Copy zeros into the rest of it
-			var m:int = ( n0 + n1 );
+			m = ( n0 + n1 );
 			n = m * m ;
 			for ( i = 0; i < n; i++ )
 			{
@@ -152,9 +156,30 @@ package physics
 				row[ 4 + c ] = 0;
 			}
 			
+			//	Now make the block matrix B
+			//	B is an ( n0 + n1 + 4 ) x 1 block matrix
+			//	The first four rows are zero
+			//	The next n0 + n1 rows are the elements of matrix B0 and B1 respectively
+			n = n0 + n1 + 4;
+			var B:Vector.<Number> = new Vector.<Number>(n, true);
+			for ( i = 0; i < n; i++ )
+			{
+				if ( i < 4 )
+				{
+					B[i] = 0 ;
+				} else if ( i < n0 + 4 ) {
+					B[i] = B0[i-4] ;
+				} else {
+					B[i] = B1[i-n0-4];
+				}
+			}
 			
-			
-			return M;
+			//	Now run M and Q through the lcp solver
+			var solution:Object = new Object();
+			var solver:LcpSolver = new LcpSolver( n, M, B, solution );
+			solution.M = M ;
+			solution.Q = B ;
+			return solution;
 		}
 	}
 }
