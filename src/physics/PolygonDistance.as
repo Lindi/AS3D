@@ -7,12 +7,6 @@ package physics
 
 	public class PolygonDistance
 	{
-		
-		public function PolygonDistance()
-		{
-		}
-		
-		
 		public static function distance( polygon0:Polygon2d, polygon1:Polygon2d ):Object
 		{
 			//	Grab the size of each of the polygons
@@ -198,19 +192,7 @@ package physics
 				row = M[ r + 4 ] ;
 				row[c] = -value ;
 			}
-			
-//			//	Copy zeros into the rest of it
-//			m = ( n0 + n1 );
-//			n = m * m ;
-//			for ( i = 0; i < n; i++ )
-//			{
-//				r = ( i / m );
-//				c = ( i % m );
-//				
-//				row = M[4 + r] ;
-//				row[ 4 + c ] = 0;
-//			}
-			
+						
 			//	Now make the block matrix B
 			//	B is an ( n0 + n1 + 4 ) x 1 block matrix
 			//	The first four rows are zero
