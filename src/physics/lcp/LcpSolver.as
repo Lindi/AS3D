@@ -18,8 +18,8 @@ package physics.lcp
 		private var departingVariable:String ;
 		private var nonBasicVariableIndex:int ;
 		private var nonBasicVariable:String ;
-		private var zeroTolerance:Number = 0.001 ;
-		private var ratioError:Number = 0.001 ;
+		private var zeroTolerance:Number = 0.00001 ;
+		private var ratioError:Number = 0.00001 ;
 		
 		/**
 		 * Implementation of Lemke's algorithm to solve the linear complementarity problem 
@@ -511,12 +511,12 @@ package physics.lcp
 							equations[index1].C[i]/denom1;
 						
 						
-						if (temp < 0.0)       
+						if (temp < -zeroTolerance)       
 						{
 							// The first equation has the smallest ratio.  Do nothing;
 							// the first equation is the choice.
 						}
-						else if (temp > 0.0) 
+						else if (temp > zeroTolerance) 
 						{
 							
 							//	This means we've found an equation that's less

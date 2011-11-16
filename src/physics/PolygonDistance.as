@@ -63,7 +63,7 @@ package physics
 				normal = polygon0.getNormal( i );				
 				A0[i*2] = normal.x ;
 				A0[i*2+1] = normal.y ;
-				vertex = polygon0.getVertex( i-1 );
+				vertex = polygon0.getVertex( i );
 				B0[i] = normal.dotProduct( vertex );
 			}
 			
@@ -76,27 +76,82 @@ package physics
 				normal = polygon1.getNormal( i );				
 				A1[i*2] = normal.x ;
 				A1[i*2+1] = normal.y ;
-				vertex = polygon1.getVertex( i-1 );
+				vertex = polygon1.getVertex( i );
 				B1[i] = normal.dotProduct( vertex );
 			}
 
+			var matrices:Object = buildMatrices( A0, B0, A1, B1);
+			
+			//	Now run M and Q through the lcp solver
+			var processing:Boolean = true ;
+			var tries:int = Math.min( B0.length, B1.length ) - 1 ;
+			while ( processing )
+			{
+				
+				var solution:Object = new Object();
+				var solver:LcpSolver = new LcpSolver( n0 + n1 + 4, matrices.M, matrices.Q, solution );
+				if ( solution.status == LcpSolver.FOUND_SOLUTION )
+				{
+					solution.M = matrices.M ;
+					return solution;
+				}
+				
+				if ( solution.status == LcpSolver.CANNOT_REMOVE_COMPLEMENTARY_VARIABLE )
+				{
+					if ( tries++ > 3 )
+					{
+						return solution ;
+					}
+					//	shuffle the a and b matrices
+					moveMatrices(A0,B0);
+					moveMatrices(A1,B1);
+
+					//	build the matrices again
+					matrices = buildMatrices( A0, B0, A1, B1);
+				}
+			}
+			return solution ;
+		}
+		
+		private static function moveMatrices( A:Vector.<Number>, B:Vector.<Number> ):void
+		{
+			var x:Number = A[0] ;
+			var y:Number = A[1] ;
+			var tmp:Number = B[0];
+			for (var i:int = 1; i < B.length; ++i)
+			{
+				var j:int = i - 1 ;
+				A[j*2] = A[i*2];
+				A[j*2+1] = A[i*2+1];
+				B[j] = B[i];
+			}
+			A[A.length - 2] = x;
+			A[A.length - 1] = y;
+			B[B.length - 1] = tmp;
+			
+		}
+		
+		private static function buildMatrices( A0:Vector.<Number>, B0:Vector.<Number>, A1:Vector.<Number>, B1:Vector.<Number> ):Object
+		{
+			var matrices:Object = new Object();
+			
 			var r:int, c:int ;
 			var row:Vector.<Number> ;
+			var n0:int = A0.length ;
+			var n1:int = A1.length ;
 			
 			//	Create a matrix A
-			n = ( n0 + n1 ) * 4 ;
+			var n:int = ( A0.length + A1.length )/2 * 4 ;
 			var A:Vector.<Number> = new Vector.<Number>(n,true);
-			for ( i = 0; i < n; i++)
+			n = n0 + n1 ;
+			for ( var i:int = 0; i < n; i++)
 			{
-				A[i] = 0 ;
-				r = ( i / 4 );
-				c = ( i % 4 );
-				if ( r < n0 )
+				if ( i < n0 )
 				{
-					A[ r * 4 + c ] = ( c < 2 ? A0[r * 2 + c] : 0 );
+					A[Math.floor(i/2)*4 + (i%2)] = A0[i] ;
 				} else
 				{
-					A[ r * 4 + c ] = ( c < 2 ? 0 : A1[(r - n0) * 2 + ( c - 2 )] );
+					A[Math.floor(i/2)*4 + (i%2)+2] = A1[i-n0] ;
 				}
 			}
 			
@@ -132,11 +187,11 @@ package physics
 			}
 			
 			//	Now, copy a transpose into the upper-right 'quadrant' of the block matrix
-			n = ( n0 + n1 ) * 4;
+			n = ( n0 + n1 )/2 * 4;
 			for ( i = 0; i < n; i++ )
 			{
-				r = ( i % ( n0 + n1 ));
-				c = ( i / ( n0 + n1 ));
+				r = ( i % (( n0 + n1 )/2));
+				c = ( i / (( n0 + n1 )/2));
 				var value:Number = A[ r * 4 + c ] ;
 				row = M[c] ;
 				row[r+4] = value ;
@@ -144,42 +199,36 @@ package physics
 				row[c] = -value ;
 			}
 			
-			//	Copy zeros into the rest of it
-			m = ( n0 + n1 );
-			n = m * m ;
-			for ( i = 0; i < n; i++ )
-			{
-				r = ( i / m );
-				c = ( i % m );
-				
-				row = M[4 + r] ;
-				row[ 4 + c ] = 0;
-			}
+//			//	Copy zeros into the rest of it
+//			m = ( n0 + n1 );
+//			n = m * m ;
+//			for ( i = 0; i < n; i++ )
+//			{
+//				r = ( i / m );
+//				c = ( i % m );
+//				
+//				row = M[4 + r] ;
+//				row[ 4 + c ] = 0;
+//			}
 			
 			//	Now make the block matrix B
 			//	B is an ( n0 + n1 + 4 ) x 1 block matrix
 			//	The first four rows are zero
 			//	The next n0 + n1 rows are the elements of matrix B0 and B1 respectively
-			n = n0 + n1 + 4;
-			var B:Vector.<Number> = new Vector.<Number>(n, true);
-			for ( i = 0; i < n; i++ )
+			n = B0.length + B1.length + 4 ;
+			var Q:Vector.<Number> = new Vector.<Number>(n, true);
+			for ( i = 4; i < n; i++ )
 			{
-				if ( i < 4 )
-				{
-					B[i] = 0 ;
-				} else if ( i < n0 + 4 ) {
-					B[i] = B0[i-4] ;
+				if ( i < B0.length + 4 ) {
+					Q[i] = B0[i-4] ;
 				} else {
-					B[i] = B1[i-n0-4];
+					Q[i] = B1[i-B0.length-4];
 				}
 			}
 			
-			//	Now run M and Q through the lcp solver
-			var solution:Object = new Object();
-			var solver:LcpSolver = new LcpSolver( n, M, B, solution );
-			solution.M = M ;
-			solution.Q = B ;
-			return solution;
+			matrices.M= M ;
+			matrices.Q= Q ;
+			return matrices ;
 		}
 	}
 }
