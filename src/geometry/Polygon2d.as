@@ -12,9 +12,6 @@ package geometry
 		private var _tree:BspNode;
 		
 		
-		public function Polygon2d()
-		{
-		}
 		
 		/**
 		 * Add a point to the polygon 
@@ -129,6 +126,23 @@ package geometry
 			if ( _normals.length >= 3 )
 				return _normals[ ( index + _vertices.length ) % _vertices.length ];
 			return null ;
+		}
+		
+		/**
+		 * Make a copy of this polygon 
+		 * @return 
+		 * 
+		 */		
+		public function clone():Polygon2d
+		{
+			var polygon:Polygon2d = new Polygon2d();
+			for ( var i:int = 0; i < _vertices.length; i++ )
+			{
+				polygon.addVertex( _vertices[i].clone() );
+			}
+			polygon.orderVertices();
+			polygon.updateLines() ;
+			return polygon ;
 		}
 		
 		/**

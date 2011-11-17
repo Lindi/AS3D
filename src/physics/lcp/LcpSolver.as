@@ -736,7 +736,8 @@ package physics.lcp
 		
 		
 		private function printEquations():void
-		{			
+		{
+			return ;
 			trace( "\n\n" );
 			for (var i:int =0; i < numberOfEquations; ++i)
 			{
