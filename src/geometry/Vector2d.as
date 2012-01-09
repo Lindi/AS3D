@@ -82,6 +82,16 @@ package geometry
 			_data[0] *= scale ; _data[1] *= scale ;
 		}
 		
+		/**
+		 * Spit it out 
+		 * @return 
+		 * 
+		 */		
+		public function toString():String
+		{
+			return "[Vector2d: "+x+","+y+"]" ;
+		}
+		
 		
 		/**
 		 * Returns the vector dot product of this vector

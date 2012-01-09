@@ -10,6 +10,7 @@ package geometry
 		private var _normals:Vector.<Vector2d> ;
 		private var _centroid:Vector2d ;
 		private var _tree:BspNode;
+		private var _moved:Boolean ;
 		
 		
 		
@@ -84,6 +85,28 @@ package geometry
 		public function get tree():BspNode
 		{
 			return _tree ; 	
+		}
+		
+		/**
+		 * Returns true if the polygon was moved during
+		 * collision response, false if not 
+		 * @return 
+		 * 
+		 */		
+		public function get moved( ):Boolean
+		{
+			return _moved ;
+		}
+		
+		/**
+		 * Set to true when the polygon has been moved during
+		 * collision response 
+		 * @param moved
+		 * 
+		 */		
+		public function set moved( moved:Boolean ):void
+		{
+			_moved = moved ;
 		}
 		/**
 		 * Returns the vertex at the specified index

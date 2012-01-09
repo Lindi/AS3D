@@ -142,7 +142,7 @@ package physics.lcp
 		private function allocateEquations():void
 		{
 			equations = new Vector.<Equation>(numberOfEquations,true);
-			var n:int = numberOfEquations + 1;
+			var n:int = numberOfEquations + 1; 
 			for (var i:int = 0; i < numberOfEquations; ++i)
 			{
 				equations[i] = new Equation();

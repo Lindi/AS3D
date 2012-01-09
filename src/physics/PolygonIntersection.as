@@ -172,7 +172,7 @@ package physics
 		 * @return Boolean
 		 * 
 		 */		
-		private static function TestIntersection
+		public static function TestIntersection
 			( a:Polygon2d, b:Polygon2d, u:Vector2d, v:Vector2d, interval:Object, intersection:Vector.<ProjectionInfo> = null ):Boolean 
 		{
 			//	A pair of ProjectionInfo instances which contains the information about
@@ -196,7 +196,8 @@ package physics
 				//	Initialize them
 				info[0] = new ProjectionInfo();
 				info[1] = new ProjectionInfo();
-				var normal:Vector2d = a.getNormal( i ) ;
+				var normal:Vector2d = a.getEdge(i) ;//a.getNormal( i ) ;
+				normal.perp();
 				var speed:Number = normal.dot( relativeVelocity ) ;
 				ComputeInterval( a, normal, info[0] );
 				ComputeInterval( b, normal, info[1] );
@@ -214,7 +215,8 @@ package physics
 				//	Initialize them
 				info[0] = new ProjectionInfo();
 				info[1] = new ProjectionInfo();
-				normal = b.getNormal( i ) ;
+				normal = b.getEdge(i);//b.getNormal( i ) ;
+				normal.perp();
 				speed = normal.dot( relativeVelocity ) ;
 				ComputeInterval( a, normal, info[0] );
 				ComputeInterval( b, normal, info[1] );
@@ -241,13 +243,13 @@ package physics
 				//	Polygon b is to the 'left' of polygon a
 				if ( speed <= 0 )
 				{
-					//	The speed is a function of the relative velocity
+					//	The relative speed is the magnitude of the relative velocity
 					//	and the relative velocity is the velocity of polygon
 					//	b "minus" the velocity of polygon a ( v - u )
 					
 					//	Remember, the relative velocity of b to a is the
 					//	velocity of b relative to a if a were not moving.
-					//	If b is on the positive side of a, then it can only
+					//	If b is on the positive side ('right' side) of a, then it can only
 					//	be moving towards a if its relative velocity is negative
 					
 					//	Conversely, if b is on the negative side of a, it can only

@@ -56,6 +56,16 @@ package geometry
 			return _max ;
 		}
 		
+		public function get width():Number 
+		{
+			return Math.abs( _max[0] - _min[0] );
+		}
+		
+		public function get height():Number
+		{
+			return Math.abs( _max[1] - _min[1] );
+		}
+		
 		public function hasXOverlap( aabb:AABB ):Boolean
 		{
 			return ( _min[0] <= aabb.xmax && _max[0] >= aabb.xmin );
@@ -76,7 +86,7 @@ package geometry
 		}
 		
 		
-		public function findIntersection( aabb:AABB, intersection:AABB ):Boolean
+		public function findIntersection( aabb:AABB, intersection:AABB = null ):Boolean
 		{
 			for ( var i:int = 0; i < 2; i++ )
 			{
@@ -84,22 +94,25 @@ package geometry
 					return false ;
 			}
 			
-			for (i = 0; i < 2; i++)
+			if ( intersection != null )
 			{
-				//	Use the lesser of the maximum intersection value
-				//	in either dimension
-				if ( _max[i] <= aabb.max[i] )
-					intersection.max[i] = _max[i];
-				else
-					intersection.max[i] = aabb.max[i];
-				
-				
-				//	Use the greater of the minimum intersection value
-				//	in either dimension
-				if ( _min[i] <= aabb.min[i] )
-					intersection.min[i] = aabb.min[i];
-				else
-					intersection.min[i] = _min[i];
+				for (i = 0; i < 2; i++)
+				{
+					//	Use the lesser of the maximum intersection value
+					//	in either dimension
+					if ( _max[i] <= aabb.max[i] )
+						intersection.max[i] = _max[i];
+					else
+						intersection.max[i] = aabb.max[i];
+					
+					
+					//	Use the greater of the minimum intersection value
+					//	in either dimension
+					if ( _min[i] <= aabb.min[i] )
+						intersection.min[i] = aabb.min[i];
+					else
+						intersection.min[i] = _min[i];
+				}
 			}
 			return true;
 		}
