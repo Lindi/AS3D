@@ -9,6 +9,7 @@
     <classEntry path="physics.PolygonIntersection"/>
     <classEntry path="physics.lcp.LcpSolver"/>
     <classEntry path="geometry.Plane"/>
+    <classEntry path="geometry.Quaternion"/>
   </includeClasses>
   <includeResources/>
   <namespaceManifests/>
